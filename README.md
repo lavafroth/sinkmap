@@ -1,7 +1,7 @@
-# sinkmap
+# Sinkmap [![Rust Report Card](https://rust-reportcard.xuri.me/badge/github.com/lavafroth/sinkmap)](https://rust-reportcard.xuri.me/report/github.com/lavafroth/sinkmap)
 Rust tool to extract JavaScript source code from sourcemap files 
 
-# Quick start
+# Getting started
 
 Use the `-u` flag for specifying a URL or a local file and the `-o` flag for a directory to output the source files to. For example:
 
