@@ -1,8 +1,7 @@
+use anyhow::Result;
 use clap::Parser;
-use std::error::Error;
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() -> Result<()> {
     let args = sinkmap::Cli::parse();
-    sinkmap::run(&args)?;
-    Ok(())
+    sinkmap::run(&args)
 }

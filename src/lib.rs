@@ -46,12 +46,11 @@ impl SourceMap {
             } else {
                 _dst = std::borrow::Cow::Borrowed(&source);
             }
-            let mut dst = _dst.strip_prefix("webpack:///").unwrap_or(source);
-            dst = dst
-                .trim_start_matches("..")
-                .trim_start_matches("./")
-                .trim_start_matches("/");
-            let dst = Path::new(dst);
+            let dst = Path::new(
+                _dst.strip_prefix("webpack:///")
+                    .unwrap_or(&_dst)
+                    .trim_start_matches(&['.', '/']),
+            );
 
             let output = Path::new(output);
             let full_path = output.join(dst);
