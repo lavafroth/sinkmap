@@ -37,26 +37,20 @@ impl SourceMap {
         Ok(sourcemap)
     }
 
-    pub fn output(&self, output: &str) -> Result<()> {
+    pub fn output(&self, out_path: &str) -> Result<()> {
         let windows_re = Regex::new(r#"[?%*|:"<>]"#).unwrap();
         for (source, content) in self.sources.iter().zip(self.sources_content.iter()) {
-            let _dst;
-            if cfg!(windows) {
-                _dst = windows_re.replace_all(source, "");
+            let _dst = if cfg!(windows) {
+                windows_re.replace_all(source, "")
             } else {
-                _dst = std::borrow::Cow::Borrowed(&source);
-            }
-            let dst = Path::new(
+                std::borrow::Cow::Borrowed(&source[..])
+            };
+            let full_path = Path::new(out_path).join(Path::new(
                 _dst.strip_prefix("webpack:///")
                     .unwrap_or(&_dst)
                     .trim_start_matches(&['.', '/']),
-            );
-
-            let output = Path::new(output);
-            let full_path = output.join(dst);
-
-            let dir = full_path.parent().unwrap_or(Path::new("."));
-            fs::create_dir_all(dir)?;
+            ));
+            fs::create_dir_all(full_path.parent().unwrap_or_else(|| Path::new(".")))?;
             fs::write(&full_path, content)?;
             println!("wrote {} bytes to {:#?}", content.len(), &full_path);
         }
@@ -65,13 +59,16 @@ impl SourceMap {
 }
 
 fn add_header(headers: &mut HeaderMap, raw: &str) -> Result<()> {
-    let (k, v) = raw.split_once(':').ok_or(Error::new(
-        ErrorKind::Other,
-        "failed to split string with delimiter ':'",
-    ))?;
-    let k = HeaderName::from_bytes((&k).as_bytes())?;
-    let v = HeaderValue::from_str(&v.to_string())?;
-    headers.insert(k, v);
+    let (k, v) = raw.split_once(':').ok_or_else(|| {
+        Error::new(
+            ErrorKind::Other,
+            "failed to split string with delimiter ':'",
+        )
+    })?;
+    headers.insert(
+        HeaderName::from_bytes(k.as_bytes())?,
+        HeaderValue::from_str(v)?,
+    );
     Ok(())
 }
 
