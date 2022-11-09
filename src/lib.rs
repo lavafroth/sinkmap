@@ -7,6 +7,7 @@ use reqwest::{
     Url,
 };
 use serde::Deserialize;
+use std::io::{Error, ErrorKind};
 use std::{fs, path::Path};
 
 #[derive(Debug, Deserialize)]
@@ -36,7 +37,7 @@ impl SourceMap {
         Ok(sourcemap)
     }
 
-    pub fn output(&self, cli: &Cli) -> Result<()> {
+    pub fn output(&self, output: &str) -> Result<()> {
         let windows_re = Regex::new(r#"[?%*|:"<>]"#).unwrap();
         for (source, content) in self.sources.iter().zip(self.sources_content.iter()) {
             let _dst;
@@ -52,7 +53,7 @@ impl SourceMap {
                 .trim_start_matches("/");
             let dst = Path::new(dst);
 
-            let output = Path::new(&cli.output);
+            let output = Path::new(output);
             let full_path = output.join(dst);
 
             let dir = full_path.parent().unwrap_or(Path::new("."));
@@ -64,26 +65,22 @@ impl SourceMap {
     }
 }
 
+fn add_header(headers: &mut HeaderMap, raw: &str) -> Result<()> {
+    let (k, v) = raw.split_once(':').ok_or(Error::new(
+        ErrorKind::Other,
+        "failed to split string with delimiter ':'",
+    ))?;
+    let k = HeaderName::from_bytes((&k).as_bytes())?;
+    let v = HeaderValue::from_str(&v.to_string())?;
+    headers.insert(k, v);
+    Ok(())
+}
+
 fn fetch(cli: &Cli) -> Result<String> {
     let mut headers = HeaderMap::new();
-    for header in cli.headers.iter() {
-        match header.split_once(':') {
-            Some((k, v)) => match HeaderValue::from_str(&v.to_string()) {
-                Ok(value) => match HeaderName::from_bytes((&k).as_bytes()) {
-                    Ok(key) => {
-                        headers.insert(key, value);
-                    }
-                    _ => {
-                        eprintln!("ignoring malformed header `{}`", header);
-                    }
-                },
-                _ => {
-                    eprintln!("ignoring malformed header `{}`", header);
-                }
-            },
-            _ => {
-                eprintln!("ignoring malformed header `{}`", header);
-            }
+    for raw in cli.headers.iter() {
+        if let Err(e) = add_header(&mut headers, raw) {
+            eprintln!("ignoring malformed header `{}`: {}", raw, e);
         }
     }
     let mut client = Client::builder().default_headers(headers);
@@ -96,17 +93,16 @@ fn fetch(cli: &Cli) -> Result<String> {
 }
 
 pub fn read(cli: &Cli) -> Result<SourceMap> {
-    let source = match Url::parse(&cli.uri) {
+    let contents = match Url::parse(&cli.uri) {
         Ok(uri) => match uri.scheme() {
             "https" | "http" => fetch(cli)?,
             _ => fs::read_to_string(&cli.uri)?,
         },
         _ => fs::read_to_string(&cli.uri)?,
     };
-    SourceMap::new(&source)
+    SourceMap::new(&contents)
 }
 
 pub fn run(cli: &Cli) -> Result<()> {
-    read(cli)?.output(cli)?;
-    Ok(())
+    read(cli)?.output(&cli.output)
 }
