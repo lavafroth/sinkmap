@@ -1,7 +1,13 @@
 [package]
 name = "sinkmap"
-version = "0.1.1"
+version = "0.1.2"
+authors = ["Himadri Bhattacharjee <lavafroth@protonmail.com>"]
+description = "Rust tool to extract JavaScript source code from sourcemap files"
 edition = "2021"
+readme = "README.md"
+repository = "https://github.com/lavafroth/sinkmap"
+license = "GPL-3.0"
+categories = ["command-line-utilities"]
 
 [dependencies]
 reqwest = { version = "0.11", features = ["blocking"] }

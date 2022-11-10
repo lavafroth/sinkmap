@@ -87,8 +87,7 @@ pub fn fetch(cli: &Cli) -> Result<String, Box<dyn Error>> {
     if let Some(proxy) = &cli.proxy {
         client = client.proxy(reqwest::Proxy::all(proxy)?);
     }
-    let client = client.build()?;
-    Ok(client.get(&cli.uri).send()?.text()?)
+    Ok(client.build()?.get(&cli.uri).send()?.text()?)
 }
 
 pub fn is_url(uri: &str) -> bool {
@@ -105,4 +104,54 @@ pub fn read_resource(cli: &Cli) -> Result<SourceMap, Box<dyn Error>> {
 
 pub fn run(cli: &Cli) -> Result<(), Box<dyn Error>> {
     read_resource(cli)?.output(&cli.output)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn unix_paths_are_not_urls() {
+        assert!(!is_url("foo/bar/baz.js.map"));
+        assert!(!is_url("./foo/bar/baz.js.map"));
+        assert!(!is_url("../foo/bar/baz.js.map"));
+        assert!(!is_url("/usr/share/baz.js.map"));
+    }
+    #[test]
+    fn windows_paths_are_not_urls() {
+        assert!(!is_url("foo\\baz.js.map"));
+        assert!(!is_url(".\\foo\\baz.js.map"));
+        assert!(!is_url("..\\foo\\baz.js.map"));
+        assert!(!is_url("C:\\Windows\\Tasks\\baz.js.map"));
+    }
+    #[test]
+    fn unusable_urls() {
+        assert!(!is_url("http//example.com/foo"));
+        assert!(!is_url("rust@http://example.com/foo"));
+        assert!(!is_url("rust@https://example.com/foo"));
+        assert!(!is_url("https::example.com/foo"));
+        assert!(!is_url("ftp:/example.com/foo"));
+        assert!(!is_url("ftp://example.com/foo"));
+    }
+    #[test]
+    fn valid_urls() {
+        assert!(is_url("http://example.com/foo"));
+        assert!(is_url("http://localhost/foo.js.map"));
+        assert!(is_url("http://example.com/foo.js.map"));
+        assert!(is_url("https://example.com/foo"));
+        assert!(is_url("https://example.com/foo.js.map"));
+    }
+    #[test]
+    fn unmap_docsearch_js() -> Result<(), Box<dyn Error>> {
+        let sourcemap = read_resource(&Cli{
+            uri: "https://unpkg.com/docsearch.js@2.4.1/dist/cdn/docsearch.min.js.map".to_string(),
+            headers: vec![],
+            proxy: None,
+            output: "doesn't even matter".to_string(),
+        })?;
+        assert_eq!(sourcemap.sources.len(), 65);
+        assert_eq!(sourcemap.sources.len(), sourcemap.sources_content.len());
+        assert_eq!(sourcemap.version, 3);
+        Ok(())
+    }
+
 }
