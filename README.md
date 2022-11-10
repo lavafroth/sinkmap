@@ -1,4 +1,4 @@
-# Sinkmap [![Rust Report Card](https://rust-reportcard.xuri.me/badge/github.com/lavafroth/sinkmap)](https://rust-reportcard.xuri.me/report/github.com/lavafroth/sinkmap)
+# Sinkmap [![Rust Report Card](https://rust-reportcard.xuri.me/badge/github.com/lavafroth/sinkmap)](https://rust-reportcard.xuri.me/report/github.com/lavafroth/sinkmap) ![build](https://github.com/lavafroth/sinkmap/actions/workflows/rust.yml/badge.svg)
 Rust tool to extract JavaScript source code from sourcemap files 
 
 #### Getting started
