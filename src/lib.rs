@@ -1,4 +1,3 @@
-use anyhow::Result;
 use clap::Parser;
 use regex::Regex;
 use reqwest::{
@@ -7,37 +6,40 @@ use reqwest::{
     Url,
 };
 use serde::Deserialize;
-use std::io::{Error, ErrorKind};
+use std::error::Error;
 use std::{fs, path::Path};
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SourceMap {
-    pub version: u8,
-    pub sources: Vec<String>,
-    pub sources_content: Vec<String>,
+    version: u8,
+    sources: Vec<String>,
+    sources_content: Vec<String>,
 }
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 pub struct Cli {
     #[arg(short, long)]
-    pub uri: String,
+    uri: String,
     #[arg(short, long)]
-    pub proxy: Option<String>,
-    #[arg(short, long, default_value_t = String::from("./") )]
-    pub output: String,
+    proxy: Option<String>,
+    #[arg(short, long, default_value_t = String::from(".") )]
+    output: String,
     #[arg(short = 'H', long = "header")]
-    pub headers: Vec<String>,
+    headers: Vec<String>,
 }
 
 impl SourceMap {
-    pub fn new(json: &str) -> Result<SourceMap> {
-        let sourcemap = serde_json::from_str(json)?;
+    fn new(json: String) -> Result<SourceMap, Box<dyn Error>> {
+        let sourcemap: SourceMap = serde_json::from_str(&json)?;
+        if sourcemap.version > 3 {
+            eprintln!("warning: detected untested version for sourcemap");
+        }
         Ok(sourcemap)
     }
 
-    pub fn output(&self, out_path: &str) -> Result<()> {
+    pub fn output(&self, out_path: &str) -> Result<(), Box<dyn Error>> {
         let windows_re = Regex::new(r#"[?%*|:"<>]"#).unwrap();
         for (source, content) in self.sources.iter().zip(self.sources_content.iter()) {
             let _dst = if cfg!(windows) {
@@ -45,11 +47,12 @@ impl SourceMap {
             } else {
                 std::borrow::Cow::Borrowed(&source[..])
             };
-            let full_path = Path::new(out_path).join(Path::new(
+            let mut full_path = std::path::PathBuf::from(out_path);
+            full_path.push(
                 _dst.strip_prefix("webpack:///")
                     .unwrap_or(&_dst)
                     .trim_start_matches(&['.', '/']),
-            ));
+            );
             fs::create_dir_all(full_path.parent().unwrap_or_else(|| Path::new(".")))?;
             fs::write(&full_path, content)?;
             println!("wrote {} bytes to {:#?}", content.len(), &full_path);
@@ -58,21 +61,22 @@ impl SourceMap {
     }
 }
 
-fn add_header(headers: &mut HeaderMap, raw: &str) -> Result<()> {
-    let (k, v) = raw.split_once(':').ok_or_else(|| {
-        Error::new(
-            ErrorKind::Other,
-            "failed to split string with delimiter ':'",
+fn add_header(headers: &mut HeaderMap, raw: &str) -> Result<(), Box<dyn Error>> {
+    let (k, v) = raw
+        .split_once(':')
+        .ok_or("failed to split header string with delimiter ':'")?;
+    headers
+        .insert(
+            HeaderName::from_bytes(k.as_bytes())?,
+            HeaderValue::from_str(v)?,
         )
-    })?;
-    headers.insert(
-        HeaderName::from_bytes(k.as_bytes())?,
-        HeaderValue::from_str(v)?,
-    );
+        .ok_or(format!(
+            "failed to insert key `{k}` and value `{v}` into headers"
+        ))?;
     Ok(())
 }
 
-fn fetch(cli: &Cli) -> Result<String> {
+pub fn fetch(cli: &Cli) -> Result<String, Box<dyn Error>> {
     let mut headers = HeaderMap::new();
     for raw in cli.headers.iter() {
         if let Err(e) = add_header(&mut headers, raw) {
@@ -84,21 +88,21 @@ fn fetch(cli: &Cli) -> Result<String> {
         client = client.proxy(reqwest::Proxy::all(proxy)?);
     }
     let client = client.build()?;
-    let text = client.get(&cli.uri).send()?.text()?;
-    Ok(text)
+    Ok(client.get(&cli.uri).send()?.text()?)
 }
 
-pub fn read(cli: &Cli) -> Result<SourceMap> {
-    let contents = match Url::parse(&cli.uri) {
-        Ok(uri) => match uri.scheme() {
-            "https" | "http" => fetch(cli)?,
-            _ => fs::read_to_string(&cli.uri)?,
-        },
-        _ => fs::read_to_string(&cli.uri)?,
-    };
-    SourceMap::new(&contents)
+pub fn is_url(uri: &str) -> bool {
+    Url::parse(uri).map(|url| matches!(url.scheme(), "https" | "http")) == Ok(true)
 }
 
-pub fn run(cli: &Cli) -> Result<()> {
-    read(cli)?.output(&cli.output)
+pub fn read_resource(cli: &Cli) -> Result<SourceMap, Box<dyn Error>> {
+    SourceMap::new(if is_url(&cli.uri) {
+        fetch(cli)?
+    } else {
+        fs::read_to_string(&cli.uri)?
+    })
+}
+
+pub fn run(cli: &Cli) -> Result<(), Box<dyn Error>> {
+    read_resource(cli)?.output(&cli.output)
 }
