@@ -1,35 +1,41 @@
 # Sinkmap [![Rust Report Card](https://rust-reportcard.xuri.me/badge/github.com/lavafroth/sinkmap)](https://rust-reportcard.xuri.me/report/github.com/lavafroth/sinkmap) ![build](https://github.com/lavafroth/sinkmap/actions/workflows/rust.yml/badge.svg)
 Rust tool to extract JavaScript source code from sourcemap files 
 
-#### Getting started
+### Getting started
 
 Use the `-u` flag for specifying a URL or a local file and the `-o` flag for a directory to output the source files to. For example:
 
 ```sh
-./sinkmap -u https://reactjs.org/$(curl -fsL "https://reactjs.org/" | grep -Po "app-.*?\.js" | head -n 1).map -o reactjssrc
-```
-```
-wrote 1510 bytes to "reactjssrc/node_modules/gatsby/node_modules/core-js/internals/redefine.js"
-wrote 847 bytes to "reactjssrc/node_modules/fbjs/lib/hyphenateStyleName.js"
-wrote 10703 bytes to "reactjssrc/node_modules/gatsby-link/index.js"
-wrote 673 bytes to "reactjssrc/node_modules/fbjs/lib/hyphenate.js"
-wrote 4663 bytes to "reactjssrc/node_modules/gatsby/node_modules/core-js/internals/fix-regexp-well-known-symbol-logic.js"
-{snip}
-rote 7172 bytes to "reactjssrc/.cache/navigation.js"
-wrote 1009 bytes to "reactjssrc/node_modules/gatsby/node_modules/core-js/internals/classof.js"
-wrote 998 bytes to "reactjssrc/node_modules/inline-style-prefixer/static/plugins/flexboxOld.js"
-wrote 9640 bytes to "reactjssrc/src/theme.js"
-wrote 604 bytes to "reactjssrc/node_modules/gatsby/node_modules/core-js/internals/regexp-sticky-helpers.js"
-```
-```
-tree -L 1 reactjssrc
-```
-```
-reactjssrc
-├── gatsby-browser.js
-├── node_modules
-├── src
-└── (webpack)
+sinkmap -o npm_home -u https://static.npmjs.com/homepage/homepage.1e2201dead1e1f3672df.js.map
 
-3 directories, 1 file
+wrote 81 bytes to "npm_home/shared/components/head/images/favicon-230x230.png"
+wrote 81 bytes to "npm_home/shared/components/head/images/favicon-96x96.png"
+wrote 266 bytes to "npm_home/shared/pages/homepage/homepage.js"
+wrote 299 bytes to "npm_home/shared/components/homepage/homepage.js"
+wrote 3783 bytes to "npm_home/shared/components/homepage/pane-homepage-content.js"
+wrote 674 bytes to "npm_home/shared/components/button/button.js"
+wrote 81 bytes to "npm_home/shared/components/head/images/android-chrome-192x192.png"
+wrote 81 bytes to "npm_home/shared/components/head/images/coast-228x228.png"
+wrote 81 bytes to "npm_home/shared/components/head/images/favicon-16x16.png"
+wrote 81 bytes to "npm_home/shared/components/head/images/open-graph.png"
+wrote 81 bytes to "npm_home/shared/components/head/images/mstile-144x144.png"
+wrote 81 bytes to "npm_home/shared/components/head/images/browserconfig.xml"
+wrote 81 bytes to "npm_home/design-system/avatar/wombat-no-avatar.svg"
+wrote 81 bytes to "npm_home/shared/components/head/images/apple-touch-icon-120x120.png"
+wrote 81 bytes to "npm_home/shared/components/head/images/apple-touch-icon-144x144.png"
+wrote 81 bytes to "npm_home/shared/components/head/images/apple-touch-icon-152x152.png"
+wrote 81 bytes to "npm_home/shared/components/head/images/apple-touch-icon-180x180.png"
+wrote 81 bytes to "npm_home/shared/components/head/images/favicon-32x32.png"
+```
+```sh
+tree -L 2 npm_home
+npm_home
+├── design-system
+│   └── avatar
+└── shared
+    ├── components
+    └── pages
+
+
+5 directories, 0 files
 ```
