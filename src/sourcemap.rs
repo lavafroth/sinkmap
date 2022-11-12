@@ -90,7 +90,9 @@ mod tests {
     #[test]
     #[should_panic(expected = "missing field `sources`")]
     fn sourcemap_without_sources() {
-        if let Err(e) = SourceMap::new("{\"version\":3,\"mappings\":\"kIAAAA,EAAOC,QAAU,iE,iBCAjBD\"}".to_string()) {
+        if let Err(e) = SourceMap::new(
+            "{\"version\":3,\"mappings\":\"kIAAAA,EAAOC,QAAU,iE,iBCAjBD\"}".to_string(),
+        ) {
             panic!("{e}");
         }
     }
@@ -98,8 +100,8 @@ mod tests {
     #[test]
     fn valid_sourcemap() -> Result<(), Box<dyn Error>> {
         let sourcemap = SourceMap::new("{\"version\":3,\"mappings\":\"kIAAAA,EAAOC,QAAU,iE,iBCAjBD\",\"sources\":[\"index.js\",\"boo.js\"],\"sourcesContent\":[\"alert('xss');\",\"console.log(1)\"]}".to_string())?;
-        assert_eq!(sourcemap.version(),3);
-        assert_eq!(sourcemap.into_iter().count(),2);
+        assert_eq!(sourcemap.version(), 3);
+        assert_eq!(sourcemap.into_iter().count(), 2);
         Ok(())
     }
 }
