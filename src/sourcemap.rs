@@ -1,7 +1,7 @@
 use regex::Regex;
 use serde::Deserialize;
 use std::error::Error;
-use std::{fs, path::Path};
+use std::{fs, iter::Zip, path::Path, slice::Iter};
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -43,7 +43,7 @@ impl SourceMap {
 
     pub fn output(&self, out_path: &str) -> Result<(), Box<dyn Error>> {
         let windows_re = Regex::new(r#"[?%*|:"<>]"#).unwrap();
-        for (source, content) in self.sources.iter().zip(self.sources_content.iter()) {
+        for (source, content) in self.into_iter() {
             let _dst = if cfg!(windows) {
                 windows_re.replace_all(source, "")
             } else {
@@ -61,9 +61,45 @@ impl SourceMap {
         }
         Ok(())
     }
+
+    pub fn into_iter(&self) -> SourceMapIter {
+        SourceMapIter(self.sources.iter().zip(self.sources_content.iter()))
+    }
 }
 
-//  #[cfg(test)]
-//  mod tests {
-//      use super::*;
-//  }
+pub struct SourceMapIter<'a>(Zip<Iter<'a, String>, Iter<'a, String>>);
+
+impl<'a> Iterator for SourceMapIter<'a> {
+    type Item = (&'a String, &'a String);
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next()
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    #[should_panic]
+    fn invalid_sourcemap() {
+        if let Err(e) = SourceMap::new("{\"foo\":\"bar\"}".to_string()) {
+            panic!("{e}");
+        }
+    }
+
+    #[test]
+    #[should_panic(expected = "missing field `sources`")]
+    fn sourcemap_without_sources() {
+        if let Err(e) = SourceMap::new("{\"version\":3,\"mappings\":\"kIAAAA,EAAOC,QAAU,iE,iBCAjBD\"}".to_string()) {
+            panic!("{e}");
+        }
+    }
+
+    #[test]
+    fn valid_sourcemap() -> Result<(), Box<dyn Error>> {
+        let sourcemap = SourceMap::new("{\"version\":3,\"mappings\":\"kIAAAA,EAAOC,QAAU,iE,iBCAjBD\",\"sources\":[\"index.js\",\"boo.js\"],\"sourcesContent\":[\"alert('xss');\",\"console.log(1)\"]}".to_string())?;
+        assert_eq!(sourcemap.version(),3);
+        assert_eq!(sourcemap.into_iter().count(),2);
+        Ok(())
+    }
+}
