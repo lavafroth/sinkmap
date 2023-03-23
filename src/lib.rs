@@ -2,8 +2,8 @@ mod sourcemap;
 mod util;
 pub use crate::sourcemap::SourceMap;
 use clap::{Args, Parser};
-use reqwest::blocking::Client;
-use std::{error::Error, fs};
+use reqwest::{blocking::Client, Proxy};
+use std::{error::Error, fs::read_to_string};
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
@@ -12,9 +12,10 @@ pub struct Config {
     /// URI that points to the sourcemap (".js.map") file to be extracted
     #[arg(short, long)]
     pub uri: String,
-    #[arg(short, long)]
     /// Proxy URL to use when fetching sourcemap
+    #[arg(short, long)]
     pub proxy: Option<String>,
+    /// Headers to use when send request for the sourcemap file
     #[arg(short = 'H', long = "header")]
     pub headers: Vec<String>,
 }
@@ -25,6 +26,7 @@ pub struct Config {
 pub struct Cli {
     #[command(flatten)]
     config: Config,
+    /// Directory to output files from the sourcemap into
     #[arg(short, long, default_value_t = String::from(".") )]
     output: String,
 }
@@ -32,17 +34,18 @@ pub struct Cli {
 pub fn fetch(config: &Config) -> Result<String> {
     let mut client = Client::builder().default_headers(util::parse_raw_headers(&config.headers));
     if let Some(proxy) = &config.proxy {
-        client = client.proxy(reqwest::Proxy::all(proxy)?);
+        client = client.proxy(Proxy::all(proxy)?);
     }
     Ok(client.build()?.get(&config.uri).send()?.text()?)
 }
 
 pub fn read_resource(config: &Config) -> Result<SourceMap> {
-    SourceMap::new(if util::url_is_ok(&config.uri) {
+    let json = if util::url_is_ok(&config.uri) {
         fetch(config)?
     } else {
-        fs::read_to_string(&config.uri)?
-    })
+        read_to_string(&config.uri)?
+    };
+    SourceMap::new(&json)
 }
 
 pub fn run(cli: &Cli) -> Result<()> {
