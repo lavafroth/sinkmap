@@ -17,8 +17,8 @@ pub struct SourceMap {
 }
 
 impl SourceMap {
-    pub fn new(json: String) -> Result<SourceMap> {
-        let sourcemap: SourceMap = serde_json::from_str(&json)
+    pub fn new(json: &str) -> Result<SourceMap> {
+        let sourcemap: SourceMap = serde_json::from_str(json)
             .map_err(|e| format!("failed to parse JSON body into sourcemap structure: {e}"))?;
         if sourcemap.version > 3 {
             eprintln!("warning: detected untested version for sourcemap");
