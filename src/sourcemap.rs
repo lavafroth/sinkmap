@@ -94,10 +94,9 @@ mod tests {
     }
 
     #[test]
-    fn valid_sourcemap() -> Result<(), Box<dyn Error>> {
-        let sourcemap = SourceMap::new("{\"version\":3,\"mappings\":\"kIAAAA,EAAOC,QAAU,iE,iBCAjBD\",\"sources\":[\"index.js\",\"boo.js\"],\"sourcesContent\":[\"alert('xss');\",\"console.log(1)\"]}".to_string())?;
+    fn valid_sourcemap() {
+        let sourcemap = SourceMap::new("{\"version\":3,\"mappings\":\"kIAAAA,EAAOC,QAAU,iE,iBCAjBD\",\"sources\":[\"index.js\",\"boo.js\"],\"sourcesContent\":[\"alert('xss');\",\"console.log(1)\"]}".to_string()).unwrap();
         assert_eq!(sourcemap.version(), 3);
         assert_eq!(sourcemap.into_iter().count(), 2);
-        Ok(())
     }
 }
