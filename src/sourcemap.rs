@@ -2,7 +2,11 @@ use regex::Regex;
 use serde::Deserialize;
 use std::error::Error;
 use std::vec::IntoIter;
-use std::{fs, iter::Zip, path::Path};
+use std::{
+    fs,
+    iter::Zip,
+    path::{Path, PathBuf},
+};
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -12,8 +16,10 @@ pub struct SourceMap {
     sources_content: Vec<String>,
 }
 
+type Result<T> = std::result::Result<T, Box<dyn Error>>;
+
 impl SourceMap {
-    pub fn new(json: String) -> Result<SourceMap, Box<dyn Error>> {
+    pub fn new(json: String) -> Result<SourceMap> {
         let sourcemap: SourceMap = serde_json::from_str(&json)
             .map_err(|e| format!("failed to parse JSON body into sourcemap structure: {e}"))?;
         if sourcemap.version > 3 {
@@ -42,19 +48,20 @@ impl SourceMap {
         self.version
     }
 
-    pub fn output(self, out_path: &str) -> Result<(), Box<dyn Error>> {
+    pub fn output(self, out_path: &str) -> Result<()> {
         let windows_re = Regex::new(r#"[?%*|:"<>]"#).unwrap();
-        for (source, content) in self.into_iter() {
-            let _dst = if cfg!(windows) {
-                windows_re.replace_all(&source, "").to_string()
-            } else {
+        for (mut source, content) in self.into_iter() {
+            if cfg!(windows) {
+                source = windows_re.replace_all(&source, "").to_string()
+            }
+            let full_path: PathBuf = [
+                out_path,
                 source
-            };
-            let mut full_path = std::path::PathBuf::from(out_path);
-            full_path.push(
-                _dst.trim_start_matches("webpack:///")
+                    .trim_start_matches("webpack:///")
                     .trim_start_matches(['.', '/']),
-            );
+            ]
+            .iter()
+            .collect();
             fs::create_dir_all(full_path.parent().unwrap_or(Path::new(".")))?;
             fs::write(&full_path, &content)?;
             println!("wrote {} bytes to {}", content.len(), full_path.display());
