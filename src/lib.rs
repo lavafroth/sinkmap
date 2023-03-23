@@ -2,10 +2,9 @@ mod sourcemap;
 mod util;
 pub use crate::sourcemap::SourceMap;
 use clap::{Args, Parser};
+use color_eyre::eyre::Result;
 use reqwest::{blocking::Client, Proxy};
-use std::{error::Error, fs::read_to_string};
-
-type Result<T> = std::result::Result<T, Box<dyn Error>>;
+use std::fs::read_to_string;
 
 #[derive(Args)]
 pub struct Config {

@@ -1,8 +1,9 @@
-use crate::Result;
+use color_eyre::eyre::{eyre, ContextCompat, Result};
 use reqwest::{
     header::{HeaderMap, HeaderName, HeaderValue},
     Url,
 };
+
 use std::str::FromStr;
 
 pub fn parse_raw_headers(raw: &[String]) -> HeaderMap {
@@ -18,10 +19,10 @@ pub fn parse_raw_headers(raw: &[String]) -> HeaderMap {
 fn add_header(headers: &mut HeaderMap, raw: &str) -> Result<()> {
     let (k, v) = raw
         .split_once(':')
-        .ok_or("failed to split header string with delimiter ':'")?;
+        .wrap_err(eyre!("failed to split header string with delimiter ':'"))?;
     headers
         .insert(HeaderName::from_str(k)?, HeaderValue::from_str(v)?)
-        .ok_or(format!(
+        .wrap_err(eyre!(
             "failed to insert key `{k}` and value `{v}` into headers"
         ))?;
     Ok(())

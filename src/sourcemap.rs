@@ -1,4 +1,4 @@
-use crate::Result;
+use color_eyre::eyre::{eyre, Result};
 use regex::Regex;
 use serde::Deserialize;
 use std::vec::IntoIter;
@@ -19,15 +19,15 @@ pub struct SourceMap {
 impl SourceMap {
     pub fn new(json: &str) -> Result<SourceMap> {
         let sourcemap: SourceMap = serde_json::from_str(json)
-            .map_err(|e| format!("failed to parse JSON body into sourcemap structure: {e}"))?;
+            .map_err(|e| eyre!("failed to parse JSON body into sourcemap structure: {e}"))?;
         if sourcemap.version > 3 {
             eprintln!("warning: detected untested version for sourcemap");
         }
         if sourcemap.sources.is_empty() {
-            return Err(Box::from("sourcemap contains no source files"));
+            return Err(eyre!("sourcemap contains no source files"));
         }
         if sourcemap.sources.len() != sourcemap.sources_content.len() {
-            return Err(Box::from(
+            return Err(eyre!(
                 "number of source files does not equal number of content entries",
             ));
         }

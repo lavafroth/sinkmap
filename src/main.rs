@@ -1,7 +1,7 @@
 use clap::Parser;
-use std::error::Error;
+use color_eyre::eyre::Result;
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() -> Result<()> {
     let args = sinkmap::Cli::parse();
     sinkmap::run(&args)
 }

@@ -1,6 +1,6 @@
 [package]
 name = "sinkmap"
-version = "0.1.2"
+version = "1.0.0"
 authors = ["Himadri Bhattacharjee <lavafroth@protonmail.com>"]
 description = "Rust tool to extract JavaScript source code from sourcemap files"
 edition = "2021"
@@ -15,3 +15,4 @@ serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 clap = { version = "4.0.22", features = ["derive"] }
 regex = "1"
+color-eyre = "0.6.2"
