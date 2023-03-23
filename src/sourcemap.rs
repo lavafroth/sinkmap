@@ -81,21 +81,19 @@ mod tests {
     #[test]
     #[should_panic]
     fn invalid_sourcemap() {
-        if let Err(e) = SourceMap::new("{\"foo\":\"bar\"}".to_string()) {
-            panic!("{e}");
-        }
+        SourceMap::new("{\"foo\":\"bar\"}".into()).unwrap();
     }
 
     #[test]
     #[should_panic(expected = "missing field `sources`")]
     fn sourcemap_without_sources() {
-        SourceMap::new("{\"version\":3,\"mappings\":\"kIAAAA,EAAOC,QAAU,iE,iBCAjBD\"}".to_string())
+        SourceMap::new("{\"version\":3,\"mappings\":\"kIAAAA,EAAOC,QAAU,iE,iBCAjBD\"}".into())
             .unwrap();
     }
 
     #[test]
     fn valid_sourcemap() {
-        let sourcemap = SourceMap::new("{\"version\":3,\"mappings\":\"kIAAAA,EAAOC,QAAU,iE,iBCAjBD\",\"sources\":[\"index.js\",\"boo.js\"],\"sourcesContent\":[\"alert('xss');\",\"console.log(1)\"]}".to_string()).unwrap();
+        let sourcemap = SourceMap::new("{\"version\":3,\"mappings\":\"kIAAAA,EAAOC,QAAU,iE,iBCAjBD\",\"sources\":[\"index.js\",\"boo.js\"],\"sourcesContent\":[\"alert('xss');\",\"console.log(1)\"]}".into()).unwrap();
         assert_eq!(sourcemap.version(), 3);
         assert_eq!(sourcemap.into_iter().count(), 2);
     }
