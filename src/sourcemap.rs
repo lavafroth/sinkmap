@@ -1,7 +1,8 @@
 use regex::Regex;
 use serde::Deserialize;
 use std::error::Error;
-use std::{fs, iter::Zip, path::Path, slice::Iter};
+use std::vec::IntoIter;
+use std::{fs, iter::Zip, path::Path};
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -41,40 +42,38 @@ impl SourceMap {
         self.version
     }
 
-    pub fn output(&self, out_path: &str) -> Result<(), Box<dyn Error>> {
+    pub fn output(self, out_path: &str) -> Result<(), Box<dyn Error>> {
         let windows_re = Regex::new(r#"[?%*|:"<>]"#).unwrap();
         for (source, content) in self.into_iter() {
             let _dst = if cfg!(windows) {
-                windows_re.replace_all(source, "")
+                windows_re.replace_all(&source, "").to_string()
             } else {
-                std::borrow::Cow::Borrowed(&source[..])
+                source
             };
             let mut full_path = std::path::PathBuf::from(out_path);
             full_path.push(
-                _dst.strip_prefix("webpack:///")
-                    .unwrap_or(&_dst)
+                _dst.trim_start_matches("webpack:///")
                     .trim_start_matches(['.', '/']),
             );
-            fs::create_dir_all(full_path.parent().unwrap_or_else(|| Path::new(".")))?;
-            fs::write(&full_path, content)?;
-            println!("wrote {} bytes to {:#?}", content.len(), &full_path);
+            fs::create_dir_all(full_path.parent().unwrap_or(Path::new(".")))?;
+            fs::write(&full_path, &content)?;
+            println!("wrote {} bytes to {}", content.len(), full_path.display());
         }
         Ok(())
     }
+}
 
-    pub fn into_iter(&self) -> SourceMapIter {
-        SourceMapIter(self.sources.iter().zip(self.sources_content.iter()))
+impl IntoIterator for SourceMap {
+    type IntoIter = Zip<IntoIter<String>, IntoIter<String>>;
+    type Item = (String, String);
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.sources
+            .into_iter()
+            .zip(self.sources_content.into_iter())
     }
 }
 
-pub struct SourceMapIter<'a>(Zip<Iter<'a, String>, Iter<'a, String>>);
-
-impl<'a> Iterator for SourceMapIter<'a> {
-    type Item = (&'a String, &'a String);
-    fn next(&mut self) -> Option<Self::Item> {
-        self.0.next()
-    }
-}
 #[cfg(test)]
 mod tests {
     use super::*;
