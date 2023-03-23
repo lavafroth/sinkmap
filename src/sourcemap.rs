@@ -1,6 +1,6 @@
+use crate::Result;
 use regex::Regex;
 use serde::Deserialize;
-use std::error::Error;
 use std::vec::IntoIter;
 use std::{
     fs,
@@ -15,8 +15,6 @@ pub struct SourceMap {
     sources: Vec<String>,
     sources_content: Vec<String>,
 }
-
-type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 impl SourceMap {
     pub fn new(json: String) -> Result<SourceMap> {

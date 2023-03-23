@@ -5,11 +5,15 @@ use clap::{Args, Parser};
 use reqwest::blocking::Client;
 use std::{error::Error, fs};
 
+type Result<T> = std::result::Result<T, Box<dyn Error>>;
+
 #[derive(Args)]
 pub struct Config {
+    /// URI that points to the sourcemap (".js.map") file to be extracted
     #[arg(short, long)]
     pub uri: String,
     #[arg(short, long)]
+    /// Proxy URL to use when fetching sourcemap
     pub proxy: Option<String>,
     #[arg(short = 'H', long = "header")]
     pub headers: Vec<String>,
@@ -25,7 +29,7 @@ pub struct Cli {
     output: String,
 }
 
-pub fn fetch(config: &Config) -> Result<String, Box<dyn Error>> {
+pub fn fetch(config: &Config) -> Result<String> {
     let mut client = Client::builder().default_headers(util::parse_raw_headers(&config.headers));
     if let Some(proxy) = &config.proxy {
         client = client.proxy(reqwest::Proxy::all(proxy)?);
@@ -33,7 +37,7 @@ pub fn fetch(config: &Config) -> Result<String, Box<dyn Error>> {
     Ok(client.build()?.get(&config.uri).send()?.text()?)
 }
 
-pub fn read_resource(config: &Config) -> Result<SourceMap, Box<dyn Error>> {
+pub fn read_resource(config: &Config) -> Result<SourceMap> {
     SourceMap::new(if util::url_is_ok(&config.uri) {
         fetch(config)?
     } else {
@@ -41,7 +45,7 @@ pub fn read_resource(config: &Config) -> Result<SourceMap, Box<dyn Error>> {
     })
 }
 
-pub fn run(cli: &Cli) -> Result<(), Box<dyn Error>> {
+pub fn run(cli: &Cli) -> Result<()> {
     read_resource(&cli.config)?.output(&cli.output)
 }
 
@@ -49,7 +53,7 @@ pub fn run(cli: &Cli) -> Result<(), Box<dyn Error>> {
 mod tests {
     use super::*;
     #[test]
-    fn unmap_docsearch_js() -> Result<(), Box<dyn Error>> {
+    fn unmap_docsearch_js() -> Result<()> {
         let sourcemap = read_resource(&Config {
             uri: "https://unpkg.com/docsearch.js@2.4.1/dist/cdn/docsearch.min.js.map".to_string(),
             headers: vec![],

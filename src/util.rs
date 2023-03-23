@@ -1,28 +1,26 @@
+use crate::Result;
 use reqwest::{
     header::{HeaderMap, HeaderName, HeaderValue},
     Url,
 };
-use std::error::Error;
+use std::str::FromStr;
 
 pub fn parse_raw_headers(raw: &[String]) -> HeaderMap {
     let mut headers = HeaderMap::new();
     for header in raw.iter() {
-        if let Err(e) = add_header(&mut headers, header) {
+        add_header(&mut headers, header).unwrap_or_else(|e| {
             eprintln!("warning: ignoring malformed header `{header}`: {e}");
-        }
+        });
     }
     headers
 }
 
-fn add_header(headers: &mut HeaderMap, raw: &str) -> Result<(), Box<dyn Error>> {
+fn add_header(headers: &mut HeaderMap, raw: &str) -> Result<()> {
     let (k, v) = raw
         .split_once(':')
         .ok_or("failed to split header string with delimiter ':'")?;
     headers
-        .insert(
-            HeaderName::from_bytes(k.as_bytes())?,
-            HeaderValue::from_str(v)?,
-        )
+        .insert(HeaderName::from_str(k)?, HeaderValue::from_str(v)?)
         .ok_or(format!(
             "failed to insert key `{k}` and value `{v}` into headers"
         ))?;
