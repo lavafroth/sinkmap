@@ -89,11 +89,8 @@ mod tests {
     #[test]
     #[should_panic(expected = "missing field `sources`")]
     fn sourcemap_without_sources() {
-        if let Err(e) = SourceMap::new(
-            "{\"version\":3,\"mappings\":\"kIAAAA,EAAOC,QAAU,iE,iBCAjBD\"}".to_string(),
-        ) {
-            panic!("{e}");
-        }
+        SourceMap::new("{\"version\":3,\"mappings\":\"kIAAAA,EAAOC,QAAU,iE,iBCAjBD\"}".to_string())
+            .unwrap();
     }
 
     #[test]
